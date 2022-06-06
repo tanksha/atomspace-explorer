@@ -2,18 +2,19 @@
  * Created by tsadik on 11/8/17.
  */
 import { Injectable } from '@angular/core';
-import {Link} from "../models/link";
-import {Graph} from "../models/graph";
-import {Node} from "../models/node";
+import { Link } from "../models/link";
+import { Graph } from "../models/graph";
+import { Node } from "../models/node";
 
-declare var d3:any;
+declare var d3: any;
 
 @Injectable()
 export class VisualizerService {
-  nodes:Node[] = [];
-  links:Link[] = [];
+  nodes: Node[] = [];
+  links: Link[] = [];
+  cogscm_str = "";
   constructor() { }
-  public getParsedJson(atoms):Graph{
+  public getParsedJson(atoms): Graph {
     let parsedJson: Graph = <Graph>{};
     this.getNodes(atoms);
     this.getLinks(atoms);
@@ -21,11 +22,15 @@ export class VisualizerService {
     parsedJson.links = this.links;
     return parsedJson;
   }
-  private getNodes(atoms){
+  private getNodes(atoms) {
     this.nodes = []
-    for(let i = 0;i<atoms.length;i++){
-      let node:Node = <Node>{};
+    for (let i = 0; i < atoms.length; i++) {
+      let node: Node = <Node>{};
       if (atoms[i].name != '') {
+        if (atoms[i].name.includes("cogscm:")) {
+          this.cogscm_str = atoms[i].name;
+          continue;
+        }
         node.id = atoms[i].handle;
         node.name = atoms[i].name;
         node.group = atoms[i].type;
@@ -38,16 +43,16 @@ export class VisualizerService {
       }
     }
   }
-  private isInNodes(handle,nodes){
-    for(let i = 0;i < nodes.length;i++){
+  private isInNodes(handle, nodes) {
+    for (let i = 0; i < nodes.length; i++) {
       if (nodes[i].id == handle.toString()) {
         return true;
       }
     }
   }
-  private getLinks(atoms){
+  private getLinks(atoms) {
     this.links = []
-    for(let i = 0; i < atoms.length ;i++){
+    for (let i = 0; i < atoms.length; i++) {
       if (atoms[i].name == '') {
         let outgoing = atoms[i].outgoing;
         let incoming = atoms[i].incoming;
@@ -56,8 +61,8 @@ export class VisualizerService {
         let av = atoms[i].attentionvalue;
         let tv = atoms[i].truthvalue;
         if (outgoing.length == 1) {
-          let linkNode:Node = <Node>{};
-          let link:Link = <Link>{};
+          let linkNode: Node = <Node>{};
+          let link: Link = <Link>{};
           link.source = handle;
           link.target = outgoing[0];
           link.name = label;
@@ -76,7 +81,7 @@ export class VisualizerService {
           this.nodes.push(linkNode);
         } else if (outgoing.length == 2) {
           if (incoming.length == 0) {
-            let link:Link = <Link>{};
+            let link: Link = <Link>{};
             link.source = outgoing[0];
             link.target = outgoing[1];
             link.name = label;
@@ -86,10 +91,10 @@ export class VisualizerService {
             link.incoming = incoming;
             link.outgoing = outgoing;
             this.links.push(link);
-          }else {
-            let linkNode:Node = <Node>{};
-            let link1:Link = <Link>{};
-            let link2:Link = <Link>{};
+          } else {
+            let linkNode: Node = <Node>{};
+            let link1: Link = <Link>{};
+            let link2: Link = <Link>{};
             linkNode.id = handle;
             linkNode.name = '';
             linkNode.group = label;
@@ -118,8 +123,8 @@ export class VisualizerService {
             this.links.push(link1);
             this.links.push(link2);
           }
-        }else if (outgoing.length > 2) {
-          let linkNode:Node = <Node>{};
+        } else if (outgoing.length > 2) {
+          let linkNode: Node = <Node>{};
           linkNode.id = handle;
           linkNode.name = '';
           linkNode.group = label;
@@ -129,8 +134,8 @@ export class VisualizerService {
           linkNode.incoming = incoming;
           linkNode.outgoing = outgoing;
           this.nodes.push(linkNode);
-          for(let k = 0; k < outgoing.length; k++){
-            let link:Link = <Link>{};
+          for (let k = 0; k < outgoing.length; k++) {
+            let link: Link = <Link>{};
             link.source = handle;
             link.target = outgoing[k];
             link.name = label;

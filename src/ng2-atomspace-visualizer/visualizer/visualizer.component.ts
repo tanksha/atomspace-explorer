@@ -174,7 +174,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     } else {
       // Percentage approach
       // Note that algorithm is sqrt-based as human visual perception relates relative value differences to area, not radius
-      return originalRadius + (Math.sqrt(scaleVal) * 2 *  (radiusScaleFactorPct / 100));
+      return originalRadius + (Math.sqrt(scaleVal) * 2 * (radiusScaleFactorPct / 100));
     }
   }
 
@@ -191,9 +191,9 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
         const atoms: any = as_data.atoms ? as_data.atoms : null;
 
         if (atoms !== null && atoms.result.atoms.length > 0) {
-              this.atoms = as_data.atoms;
-              console.log('VisualizerComponent atoms=' + as_data.atoms);
-              console.log('atoms.result.atoms.length =',atoms.result.atoms.length);
+          this.atoms = as_data.atoms;
+          console.log('VisualizerComponent atoms=' + as_data.atoms);
+          console.log('atoms.result.atoms.length =', atoms.result.atoms.length);
         }
 
         // Incoming data: numAtoms
@@ -267,113 +267,133 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     }
   }
 
-   // Function to extract salient features of an atomspace based on incoming/outgoing number of links
-   salientIncomingOutgoingLinks() {
+  // Function to extract salient features of an atomspace based on incoming/outgoing number of links
+  salientIncomingOutgoingLinks() {
 
-        const numberOfNodesToShow = 20;
-        var sumInOut = new Array();
-        var sum = 0;
-
-        if (this.atoms) {
-            var tempParsedJson = this.parsedJson;
-            console.log('tempParsedJson\n', tempParsedJson);
-            console.log(tempParsedJson.nodes);
-            console.log(tempParsedJson.nodes.length);
-            console.log(tempParsedJson.links);
-            console.log(tempParsedJson.links.length);
-            console.log(typeof tempParsedJson.nodes);
-            console.log(typeof tempParsedJson.links);
-
-            // Save color of nodes/links for later
-            // let tempParsedJson2 = this.visualizerService.getParsedJson(this.atoms.result.atoms);
-            console.log('this.parsedJson\n', this.parsedJson);
-
-            for (let i = 0; i < this.parsedJson.nodes.length; i++) {
-                salientProcessingColor[this.parsedJson.nodes[i]["id"]]=this.parsedJson.nodes[i]["color"];
-            }
-
-            // console.log('salientProcessingColor\n',salientProcessingColor);
-
-            // Sort nodes by number of incoming + outgoing
-
-            for (let i = 0; i < tempParsedJson.nodes.length; i++) {
-                sum = tempParsedJson.nodes[i].incoming.length + tempParsedJson.nodes[i].outgoing.length;
-                sumInOut[i] = [i,sum];
-            }
-            sumInOut.sort((first,second) => {return second[1]-first[1]});
-            // console.log('SumInOut\n',sumInOut)
-
-            let iTempNode = 0;
-            for (let i = 0; i < sumInOut.length; i++) {
-
-                if(tempParsedJson.nodes[sumInOut[i][0]]["type"] == "TimeNode" || tempParsedJson.nodes[sumInOut[i][0]]["type"] == "NumberNode") {
-                    // console.log('In first if');
-                    tempParsedJson.nodes[sumInOut[i][0]]["color"] = "#C0C0C0";
-                    continue;
-                }
-
-                if (iTempNode < numberOfNodesToShow){
-                        // console.log('In if sumInOut[i][0] =', sumInOut[i][0]);
-                        tempParsedJson.nodes[sumInOut[i][0]]["color"] = "#146EB4";
-                        iTempNode = iTempNode + 1;
-                    }
-                else {
-                    // console.log('In else sumInOut[i][0] =', sumInOut[i][0]);
-                    tempParsedJson.nodes[sumInOut[i][0]]["color"] = "#C0C0C0";
-                }
-            }
+    const numberOfNodesToShow = 20;
+    var sumInOut = new Array();
+    var sumInOutId = new Array();
+    var sortedSumInOut;
+    var cutOffValue = 0;
+    var tempNodes = new Array();
 
 
-            // Save name of links for later
+    if (this.atoms) {
+      var tempParsedJson = this.parsedJson;
+      console.log('tempParsedJson\n', tempParsedJson);
+      console.log(tempParsedJson.nodes);
+      console.log(tempParsedJson.nodes.length);
+      console.log(tempParsedJson.links);
+      console.log(tempParsedJson.links.length);
+      console.log(typeof tempParsedJson.nodes);
+      console.log(typeof tempParsedJson.links);
 
-            console.log('tempParsedJson.links\n',tempParsedJson.links);
+      // Save color of nodes/links for later
+      // let tempParsedJson2 = this.visualizerService.getParsedJson(this.atoms.result.atoms);
+      console.log('this.parsedJson\n', this.parsedJson);
 
-            for (let i = 0; i < this.parsedJson.links.length; i++) {
-                salientProcessingLinkNames[this.parsedJson.links[i]['index']]=this.parsedJson.links[i]['name'];
-            }
+      for (let i = 0; i < this.parsedJson.nodes.length; i++) {
+        salientProcessingColor[this.parsedJson.nodes[i]["id"]] = this.parsedJson.nodes[i]["color"];
+      }
 
-            console.log('salientProcessingLinkNames\n',salientProcessingLinkNames);
+      console.log('salientProcessingColor\n', salientProcessingColor);
 
-            //  Empty name field of links
+      // Get the cut-off number of incoming + outgoing count for a node
 
-            for (let i = 0; i < tempParsedJson.links.length; i++) {
+      for (let i = 0; i < tempParsedJson.nodes.length; i++) {
+        sumInOut[i] = tempParsedJson.nodes[i].incoming.length + tempParsedJson.nodes[i].outgoing.length;
+        sumInOutId[i] = tempParsedJson.nodes[i].id
+      }
+      sortedSumInOut = [...sumInOut].sort()
+      sortedSumInOut.reverse();
+      console.log('sortedSumInOut\n', sortedSumInOut)
+      console.log('sumInOutId\n', sumInOutId)
 
-                 tempParsedJson.links[i]['name'] = '';
+      if (sortedSumInOut.length >= numberOfNodesToShow)
+        cutOffValue = sortedSumInOut[numberOfNodesToShow - 1];
 
-            }
+      console.log('cutOffValue =', cutOffValue);
 
+      let iTempNode = 0;
+      let iCutOffValue = 1;
+      for (let i = 0; i < tempParsedJson.nodes.length; i++) {
 
-            return tempParsedJson;
+        if (tempParsedJson.nodes[i]["type"] == "TimeNode") {
+          cutOffValue = sortedSumInOut[numberOfNodesToShow - 1 + iCutOffValue];
+          iCutOffValue = iCutOffValue + 1;
+          tempParsedJson.nodes[i]["color"] = "#C0C0C0";
+          continue;
         }
-   }
 
-   // Function to preprocess atoms that are returned from calling visualizerService
-   preprocessAtoms() {
-
-   //Replace instances of back with null string for now till fix is done on opencog code
-      for (let i = 0; i < this.atoms.result.atoms.length; i++) {
-            this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back-/ig,"");
-            this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back/ig,"");
-            this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back-/ig,"");
-            this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back/ig,"");
+        if (sumInOut[i] >= cutOffValue && iTempNode < numberOfNodesToShow) {
+          tempParsedJson.nodes[i]["color"] = "#146EB4";
+          iTempNode = iTempNode + 1;
+        }
+        else if (sumInOut[i] >= cutOffValue && iTempNode >= numberOfNodesToShow) {
+          tempParsedJson.nodes[i]["color"] = "#C0C0C0";
+        }
+        else {
+          tempParsedJson.nodes[i]["color"] = "#C0C0C0";
+        }
       }
 
 
-   }
+      // Save name of links for later
 
-   // Function to replace some links with symbols
-   replaceLinkNames() {
+      console.log('tempParsedJson.links\n', tempParsedJson.links);
 
-   //Replace link names
-   /*   for (let i = 0; i < this.atoms.result.atoms.length; i++) {
-            this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back-/ig,"");
-            this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back/ig,"");
-            this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back-/ig,"");
-            this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back/ig,"");
-      }*/
+      for (let i = 0; i < this.parsedJson.links.length; i++) {
+        salientProcessingLinkNames[this.parsedJson.links[i]['index']] = this.parsedJson.links[i]['name'];
+      }
+
+      console.log('salientProcessingLinkNames\n', salientProcessingLinkNames);
+
+      //  Empty name field of links
+
+      for (let i = 0; i < tempParsedJson.links.length; i++) {
+
+        tempParsedJson.links[i]['name'] = '';
+
+      }
 
 
-   }
+      return tempParsedJson;
+    }
+  }
+
+  // Function to preprocess atoms that are returned from calling visualizerService
+  preprocessAtoms() {
+
+    //Replace instances of back with null string for now till fix is done on opencog code
+    for (let i = 0; i < this.atoms.result.atoms.length; i++) {
+      this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back-/ig, "");
+      this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back/ig, "");
+      this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back-/ig, "");
+      this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back/ig, "");
+    }
+
+
+  }
+
+  // Function to replace some links with symbols
+  replaceLinkNames() {
+
+    //Replace link names
+    /*   for (let i = 0; i < this.atoms.result.atoms.length; i++) {
+             this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back-/ig,"");
+             this.atoms.result.atoms[i]["name"] = this.atoms.result.atoms[i]["name"].replace(/back/ig,"");
+             this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back-/ig,"");
+             this.atoms.result.atoms[i]["type"] = this.atoms.result.atoms[i]["type"].replace(/back/ig,"");
+       }*/
+
+
+  }
+
+  // Function to display human readable cogscm
+  displaycogscm() {
+    document.getElementById('textArea').innerHTML
+      = this.visualizerService.cogscm_str;
+  }
 
   /*
    * Post-Init
@@ -408,41 +428,41 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     }
 
     setInterval(() => {
-	    this.update();
-	}, 3000);
-	console.log('setInterval called from visualizer component');
+      this.update();
+    }, 3000);
+    console.log('setInterval called from visualizer component');
 
   }
 
-   update() {
+  update() {
 
-        try {
+    this.displaycogscm();
 
-                    if(previousNumberOfAtoms != this.atoms.result.atoms.length){
-                        previousNumberOfAtoms = this.atoms.result.atoms.length;
-                        this.ngAfterViewInit();
-                    }
+    try {
 
-            }
-            catch (error) {
-                console.log(error);
-            }
+      if (previousNumberOfAtoms != this.atoms.result.atoms.length) {
+        previousNumberOfAtoms = this.atoms.result.atoms.length;
+        this.ngAfterViewInit();
+      }
 
-
-            if (this.numAtoms == 0 && previousNumberOfAtoms !=0){
-
-                  previousNumberOfAtoms = 0;
-                  this.parsedJson = this.visualizerService.getParsedJson([]);
-
-                  this.draw_graph();
-                  isSimulationRunning = true;
-                  this.isInitialLoad = false;
-
-                  console.log('In if (this.numAtoms == 0 && previousNumberOfAtoms !=0)');
-
-            }
+    }
+    catch (error) {
+      console.log(error);
+    }
 
 
+    if (this.numAtoms == 0 && previousNumberOfAtoms != 0) {
+
+      previousNumberOfAtoms = 0;
+      this.parsedJson = this.visualizerService.getParsedJson([]);
+
+      this.draw_graph();
+      isSimulationRunning = true;
+      this.isInitialLoad = false;
+
+      console.log('In if (this.numAtoms == 0 && previousNumberOfAtoms !=0)');
+
+    }
 
   }
 
@@ -452,7 +472,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
   ngOnChanges(changes: SimpleChanges) {
     // console.log("ngOnChanges()");
     if (!changes.atoms.isFirstChange()) {
-    // if (!changes.atoms.isFirstChange() && !changes.unordered_linktypes.isFirstChange() && !changes.language.isFirstChange() ) {
+      // if (!changes.atoms.isFirstChange() && !changes.unordered_linktypes.isFirstChange() && !changes.language.isFirstChange() ) {
       this.ngAfterViewInit();
     }
   }
@@ -679,7 +699,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
   filterByNode(type) {
     // console.log('filterByNode(type): ' + type);
 
-    const filterTypeAll =  this._translate.instant('Unfiltered');
+    const filterTypeAll = this._translate.instant('Unfiltered');
 
     // Clear Filter
     if (type === filterTypeAll) {
@@ -728,7 +748,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
       }
     });
     this.textPath.style('opacity', (d) => {
-        // return (d.source === this.selectedNodeData || d.target === this.selectedNodeData) ? 1 : 0;
+      // return (d.source === this.selectedNodeData || d.target === this.selectedNodeData) ? 1 : 0;
       if ((d.source === this.selectedNodeData) && d.target.type === type) {
         // if ((d.source === this.selectedNodeData) && (d.target.type === type || type === filterTypeAll)) {
         return opacityLink;
@@ -805,9 +825,9 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     if (isSimulationRunning) { simulation.restart(); }
   }
 
- /*
-  * getFilters() - Extract unique Node types and Link types from AtomSpace data for dynamically constructed filtering menu
-  */
+  /*
+   * getFilters() - Extract unique Node types and Link types from AtomSpace data for dynamically constructed filtering menu
+   */
   public getFilters(parsedJson) {
     // Nodes
     parsedJson.nodes.forEach(elem => {
@@ -1009,11 +1029,11 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
         }
         return '';
       })*/;
-      /* Mouseover/out over link lines no longer works after converting from lines to paths (including arcs). Was hard
-       * for users to trigger over the narrow link lines anyway, so just leaving link labels as the mouseover target
-      .on('mouseover', (d) => linkMouseOver.call(this, d))
-      .on('mouseout', (d) => linkMouseOut.call(this, d));
-      */
+    /* Mouseover/out over link lines no longer works after converting from lines to paths (including arcs). Was hard
+     * for users to trigger over the narrow link lines anyway, so just leaving link labels as the mouseover target
+    .on('mouseover', (d) => linkMouseOver.call(this, d))
+    .on('mouseout', (d) => linkMouseOut.call(this, d));
+    */
 
     // Link edgepath
     this.textPath = g.append('g')
@@ -1201,7 +1221,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     });
     // console.log(linkedByOutgoing);
     for (var i = 0; i < 300; ++i) {
-        simulation.tick();
+      simulation.tick();
     }
 
     graphTick.call(this)
@@ -1279,7 +1299,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
       if (versionIE > 0) {
         // The workaround is to iterate over all the links on every tick of the animation, re-adding
         // them to the DOM. This causes IE to re-render them, bypassing the IE rendering problems
-        this.link.each(function() { this.parentNode.insertBefore(this, this); } );
+        this.link.each(function () { this.parentNode.insertBefore(this, this); });
       }
       // Update Link and Link Label positions
       //
@@ -1289,8 +1309,8 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
       // - 2 or more links, with even quantity: 1st pair (1 & 2) are arc-pathed links. Next pair (3 & 4) are arc-pathed with a larger
       //   radius. #5 and beyond not supported for now. They'll be drawn straight, overlapping each other.
       const offsetRadsL1 = 0.13, offsetRadsL2 = 0.26, offsetRadsL3 = 0.39,
-            radiusFactorL1 = 1.75, radiusFactorL2 = 1.0, radiusFactorL3 = 0.70;
-      this.link.attr('d', function(d) {
+        radiusFactorL1 = 1.75, radiusFactorL2 = 1.0, radiusFactorL3 = 0.70;
+      this.link.attr('d', function (d) {
         const arrOutLinks = getOutgoingLinks(d);
         if (arrOutLinks.length % 2) {  // Odd # of links
           switch (d.id) {
@@ -1315,7 +1335,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
           }
         }
       });
-      this.textPath.attr('d', function(d) {
+      this.textPath.attr('d', function (d) {
         const isLeftHand = d.source.x < d.target.x;
         const arrOutLinks = getOutgoingLinks(d);
         if (arrOutLinks.length % 2) {  // Odd # of links
@@ -1755,7 +1775,8 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
             } else {
               return strokeWidthNode;  // Usual style.
             }
-          }})
+          }
+        })
         .style('stroke', function (o) {
           if (isOver) {
             if (o.id === d.id) {
@@ -1785,7 +1806,8 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
             return o.id === d.id ? strokeWidthHoverLink : strokeWidthLink;
           } else {
             return strokeWidthLink;
-          }})
+          }
+        })
         .style('stroke', function (o) {
           if (isOver) {
             if (o.id === d.id) {
@@ -1823,7 +1845,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
     /*
     * getTooltipHTML - Get the html for tooltips
     */
-   function getTooltipHTML(d, headText, verbose) {
+    function getTooltipHTML(d, headText, verbose) {
       if (verbose) {
         const translate = VisualizerComponent.this()._translate;
         let incoming = d.incoming && d.incoming.length ? d.incoming.join(', ') : '';
@@ -1886,17 +1908,25 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
      * arcPath() - Generate arc path.
      */
     function arcPath(d, isLeftHand, offsetRads, radiusFactor, isDefaultSweep) {
-      const start = isLeftHand ? { x: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
-                                   y: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[1] } :
-                                 { x: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
-                                   y: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[1] };
-      const end = isLeftHand ? { x: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
-                                 y: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[1] } :
-                               { x: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
-                                 y: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[1] };
+      const start = isLeftHand ? {
+        x: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
+        y: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[1]
+      } :
+        {
+          x: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
+          y: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[1]
+        };
+      const end = isLeftHand ? {
+        x: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
+        y: getTargetNodeCircumPt(d, offsetRads, isDefaultSweep)[1]
+      } :
+        {
+          x: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[0],
+          y: getSourceNodeCircumPt(d, offsetRads, isDefaultSweep)[1]
+        };
       const dx = end.x - start.x,
-            dy = end.y - start.y,
-            dr = Math.sqrt(dx * dx + dy * dy) * radiusFactor;
+        dy = end.y - start.y,
+        dr = Math.sqrt(dx * dx + dy * dy) * radiusFactor;
       let sweep = isLeftHand ? 0 : 1;
       if (!isDefaultSweep) {
         sweep = isLeftHand ? 1 : 0;
@@ -1908,12 +1938,12 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
      */
     function straightPath(d, isLeftHand) {
       const start = isLeftHand ? { x: getSourceNodeCircumPt(d, 0, true)[0], y: getSourceNodeCircumPt(d, 0, true)[1] } :
-                                 { x: getTargetNodeCircumPt(d, 0, true)[0], y: getTargetNodeCircumPt(d, 0, true)[1] };
+        { x: getTargetNodeCircumPt(d, 0, true)[0], y: getTargetNodeCircumPt(d, 0, true)[1] };
       const end = isLeftHand ? { x: getTargetNodeCircumPt(d, 0, true)[0], y: getTargetNodeCircumPt(d, 0, true)[1] } :
-                               { x: getSourceNodeCircumPt(d, 0, true)[0], y: getSourceNodeCircumPt(d, 0, true)[1] };
+        { x: getSourceNodeCircumPt(d, 0, true)[0], y: getSourceNodeCircumPt(d, 0, true)[1] };
       const dx = end.x - start.x,
-            dy = end.y - start.y,
-            sweep = isLeftHand ? 1 : 0;
+        dy = end.y - start.y,
+        sweep = isLeftHand ? 1 : 0;
       return 'M ' + start.x + ' ' + start.y + ' L ' + end.x + ' ' + end.y;
     }
 
@@ -1958,7 +1988,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
           return menutext;
         }
       },
-      action: function(elm, d, i) {
+      action: function (elm, d, i) {
         if (!__this.isSelectedNode) {
           __this.panToCenter.call(__this);
         } else {
@@ -2052,7 +2082,7 @@ export class VisualizerComponent implements AfterViewInit, OnInit, OnDestroy, On
       },
       {
         title: __this._translate.instant('PanToCenter'),
-        action: function(elm, d, i) {
+        action: function (elm, d, i) {
           __this.panNodeToCenter.call(__this, d);
         },
       }
